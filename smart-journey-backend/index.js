@@ -2,6 +2,7 @@ import axios from "axios";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { generateMockRoutes } from "./mockRoutes.js";
 
 dotenv.config();
 
@@ -90,6 +91,12 @@ app.post("/api/route", async (req, res) => {
       return res.status(400).json({ error: "Origin and destination required" });
     }
 
+    if (!GOOGLE_KEY) {
+      return res.status(500).json({
+        error: "Google Maps API key not configured. Please set GOOGLE_MAPS_API_KEY in backend .env file.",
+      });
+    }
+
     // Call Google Directions with alternatives + traffic
     const url = "https://maps.googleapis.com/maps/api/directions/json";
     const response = await axios.get(url, {
@@ -104,9 +111,16 @@ app.post("/api/route", async (req, res) => {
     });
 
     if (response.data.status !== "OK") {
-      return res.status(500).json({
-        error: "Google routing failed",
-        details: response.data,
+      const errorMsg = response.data.error_message || "Unknown error";
+      console.error("Google Directions API error:", response.data.status, errorMsg);
+      console.log("⚠️  Falling back to mock/demo data to demonstrate DSA algorithms...");
+      
+      // Fallback to mock data when API fails - demonstrates DSA algorithms
+      const mockData = generateMockRoutes(origin, destination, fuelPrice || 280, mileage || 14);
+      return res.json({
+        ...mockData,
+        _demo: true,
+        _apiError: `${response.data.status}: ${errorMsg}`,
       });
     }
 
@@ -179,7 +193,23 @@ app.post("/api/route", async (req, res) => {
     });
   } catch (err) {
     console.error("Google API error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Routing failed. Check Google API key." });
+    const errorDetails = err.response?.data?.error_message || err.message || "Unknown error";
+    console.log("⚠️  Falling back to mock/demo data to demonstrate DSA algorithms...");
+    
+    // Fallback to mock data when API fails
+    try {
+      const mockData = generateMockRoutes(origin, destination, fuelPrice || 280, mileage || 14);
+      return res.json({
+        ...mockData,
+        _demo: true,
+        _apiError: errorDetails,
+      });
+    } catch (mockErr) {
+      res.status(500).json({ 
+        error: "Routing failed. Check Google API key and ensure Directions API is enabled.",
+        details: errorDetails,
+      });
+    }
   }
 });
 

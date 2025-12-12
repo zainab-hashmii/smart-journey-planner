@@ -13,8 +13,83 @@ export default function StatsCard({ bestRoute, routes }) {
     );
   }
 
+  // Generate explanation for why this route is best
+  const generateExplanation = (bestRoute, allRoutes) => {
+    const reasons = [];
+    
+    // Compare with other routes
+    const otherRoutes = allRoutes.filter(r => r.summary !== bestRoute.summary);
+    
+    if (otherRoutes.length > 0) {
+      const shortestDistance = Math.min(...allRoutes.map(r => r.distanceKm));
+      const fastestTime = Math.min(...allRoutes.map(r => r.durationTrafficMinutes));
+      const cheapestFuel = Math.min(...allRoutes.map(r => r.fuelCost || Infinity));
+      
+      if (bestRoute.distanceKm === shortestDistance) {
+        reasons.push("shortest distance");
+      }
+      if (bestRoute.durationTrafficMinutes === fastestTime) {
+        reasons.push("fastest travel time");
+      }
+      if (bestRoute.fuelCost === cheapestFuel) {
+        reasons.push("lowest fuel cost");
+      }
+      
+      // Calculate savings
+      const avgDistance = allRoutes.reduce((sum, r) => sum + r.distanceKm, 0) / allRoutes.length;
+      const avgTime = allRoutes.reduce((sum, r) => sum + r.durationTrafficMinutes, 0) / allRoutes.length;
+      const avgFuel = allRoutes.reduce((sum, r) => sum + (r.fuelCost || 0), 0) / allRoutes.length;
+      
+      const distanceSavings = avgDistance - bestRoute.distanceKm;
+      const timeSavings = avgTime - bestRoute.durationTrafficMinutes;
+      const fuelSavings = avgFuel - (bestRoute.fuelCost || 0);
+      
+      if (distanceSavings > 0) {
+        reasons.push(`saves ${distanceSavings.toFixed(1)} km compared to average`);
+      }
+      if (timeSavings > 0) {
+        reasons.push(`saves ${Math.round(timeSavings)} minutes`);
+      }
+      if (fuelSavings > 0) {
+        reasons.push(`saves Rs ${fuelSavings.toFixed(0)} on fuel`);
+      }
+    }
+    
+    if (reasons.length === 0) {
+      return "This route offers the best balance of distance, time, and fuel cost using our DSA-based optimization algorithm (min-heap priority queue).";
+    }
+    
+    return `This route is the most efficient because it has the ${reasons.slice(0, 2).join(" and ")}. Our algorithm analyzed all ${allRoutes.length} route options using a min-heap data structure to find the optimal path that minimizes combined travel time and fuel expenses.`;
+  };
+
   return (
     <div className="space-y-4">
+      {/* Route Explanation Card */}
+      <div className="rounded-3xl bg-gradient-to-br from-indigo-900/80 to-purple-900/80 border-2 border-indigo-500/50 p-6 shadow-xl">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-indigo-500/30 flex items-center justify-center">
+            <span className="text-2xl">🎯</span>
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-slate-50 mb-2">
+              Why This Route is Most Efficient
+            </h2>
+            <p className="text-slate-200 leading-relaxed mb-4">
+              {generateExplanation(bestRoute, routes || [])}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-200 text-xs font-semibold">
+                Smart Score: {bestRoute.smartScore.toFixed(1)}/10
+              </span>
+              <span className="px-3 py-1 rounded-full bg-purple-500/30 text-purple-200 text-xs font-semibold">
+                Algorithm: Min-Heap Priority Queue
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Route Statistics */}
       <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-5">
         <h2 className="text-lg font-semibold text-slate-50 mb-3">
           Best Route Summary
