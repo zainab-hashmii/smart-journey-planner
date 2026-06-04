@@ -84,8 +84,8 @@ function toSmartScore(cost, maxCost) {
 
 // /api/route endpoint using GOOGLE with DSA-inspired selection
 app.post("/api/route", async (req, res) => {
+  const { origin, destination, fuelPrice, mileage } = req.body;
   try {
-    const { origin, destination, fuelPrice, mileage } = req.body;
 
     if (!origin || !destination) {
       return res.status(400).json({ error: "Origin and destination required" });
